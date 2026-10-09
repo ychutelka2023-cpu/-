@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Інтерактивний сімейний бюджет</title>
+<style>
+:root { --blue:#24558a; --yellow:#f3c94f; --ink:#243447; --muted:#64748b; --line:#dbe4ee; --bg:#f4f7fb; }
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:Arial,Helvetica,sans-serif;color:var(--ink);padding:18px}
+.app{max-width:1100px;margin:auto;background:#fff;border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:0 8px 28px #1e3a5f12}
+.header{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+h1{font-size:clamp(22px,3vw,34px);margin:0 0 7px;color:var(--blue)}
+.subtitle{color:var(--muted);margin:0;font-size:15px}
+.income{background:#e8f1fc;border-radius:14px;padding:14px 20px;text-align:center;min-width:180px}
+.income small{display:block;color:var(--blue);font-weight:bold;margin-bottom:4px}
+.income strong{font-size:28px;color:var(--blue)}
+.categories{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:22px}
+.item{border:1px solid var(--line);border-radius:13px;padding:12px 14px;background:#fff}
+.itemtop{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.emoji{font-size:22px;width:30px;text-align:center}
+.name{font-size:15px;font-weight:700;flex:1}
+.amount{font-weight:700;color:var(--blue);font-variant-numeric:tabular-nums;white-space:nowrap}
+input[type=range]{width:100%;accent-color:var(--blue);cursor:pointer;margin:5px 0 0}
+.rangefoot{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin-top:1px}
+.summary{margin-top:20px;background:#f8fafc;border:1px solid var(--line);border-radius:16px;padding:16px}
+.summarytop{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.total-label{color:var(--muted);font-size:13px;font-weight:bold}
+.total{font-size:30px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+.status{font-weight:700;padding:9px 13px;border-radius:999px;font-size:14px}
+.ok{background:#dcfce7;color:#166534}.over{background:#fee2e2;color:#991b1b}.under{background:#fef3c7;color:#92400e}
+.bar{height:12px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin-top:12px}
+.fill{height:100%;width:100%;background:var(--blue);transition:width .15s,background .15s;border-radius:99px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+button{border:0;border-radius:10px;padding:11px 16px;font-weight:700;font-size:14px;cursor:pointer}
+.reset{background:var(--blue);color:white}.equal{background:#fff;border:1px solid var(--line);color:var(--blue)}
+.note{font-size:12px;color:var(--muted);margin:13px 0 0;line-height:1.4}
+@media(max-width:700px){body{padding:8px}.app{padding:14px}.categories{grid-template-columns:1fr}.income{width:100%}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div>
+      <h1>Кейс «Сімейний бюджет»</h1>
+      <p class="subtitle">Розподіліть щомісячний дохід сім’ї між 10 категоріями.</p>
+    </div>
+    <div class="income"><small>МІСЯЧНИЙ ДОХІД</small><strong>30 000 грн</strong></div>
+  </div>
+  <div class="categories" id="categories"></div>
+  <div class="summary">
+    <div class="summarytop">
+      <div><div class="total-label">РАЗОМ РОЗПОДІЛЕНО</div><div class="total" id="total">30 000 грн</div></div>
+      <div id="status" class="status ok">Бюджет збалансовано</div>
+    </div>
+    <div class="bar"><div class="fill" id="fill"></div></div>
+    <div class="actions">
+      <button class="reset" id="reset">↻ Скинути до початкового варіанта</button>
+      <button class="equal" id="equal">Розподілити порівну</button>
+    </div>
+    <p class="note">Початковий розподіл — лише приклад для обговорення. Пересувайте бігунки разом із колегами. Якщо сума перевищує 30 000 грн або залишається нерозподілений залишок, індикатор це покаже.</p>
+  </div>
+</div>
+<script>
+const budget=30000;
+const data=[
+ ['🏠','Житло та комунальні послуги',7000],
+ ['🥗','Харчування',8000],
+ ['🚌','Транспорт',2000],
+ ['💊','Здоров’я',1500],
+ ['📚','Освіта',1000],
+ ['📱','Зв’язок та інтернет',500],
+ ['👕','Одяг',1500],
+ ['🎭','Відпочинок',1500],
+ ['💰','Заощадження',4000],
+ ['🆘','Непередбачені витрати',3000]
+];
+const fmt=n=>Math.round(n).toLocaleString('uk-UA')+' грн';
+const container=document.getElementById('categories');
+function build(values){
+ container.innerHTML='';
+ data.forEach((d,i)=>{
+  const el=document.createElement('div');el.className='item';
+  el.innerHTML=`<div class="itemtop"><span class="emoji">${d[0]}</span><span class="name">${d[1]}</span><span class="amount" id="amount${i}">${fmt(values[i])}</span></div><input aria-label="${d[1]}" type="range" min="0" max="12000" step="500" value="${values[i]}" id="range${i}"><div class="rangefoot"><span>0 грн</span><span>12 000 грн</span></div>`;
+  container.appendChild(el);
+  el.querySelector('input').addEventListener('input',e=>{document.getElementById('amount'+i).textContent=fmt(+e.target.value);update()});
+ });
+ update();
+}
+function values(){return data.map((_,i)=>+document.getElementById('range'+i).value)}
+function update(){
+ const total=values().reduce((a,b)=>a+b,0);
+ document.getElementById('total').textContent=fmt(total);
+ const status=document.getElementById('status'),fill=document.getElementById('fill');
+ status.className='status';
+ if(total===budget){status.classList.add('ok');status.textContent='Бюджет збалансовано'}
+ else if(total>budget){status.classList.add('over');status.textContent='Перевищення: '+fmt(total-budget)}
+ else {status.classList.add('under');status.textContent='Залишилося: '+fmt(budget-total)}
+ fill.style.width=Math.min(100,total/budget*100)+'%';
+ fill.style.background=total>budget?'#dc2626':total<budget?'#eab308':'#24558a';
+}
+function setValues(vals){vals.forEach((v,i)=>{const r=document.getElementById('range'+i);r.value=v;document.getElementById('amount'+i).textContent=fmt(v)});update()}
+document.getElementById('reset').addEventListener('click',()=>setValues(data.map(d=>d[2])));
+document.getElementById('equal').addEventListener('click',()=>setValues([3000,3000,3000,3000,3000,3000,3000,3000,3000,3000]));
+build(data.map(d=>d[2]));
+</script>
+</body>
+</html>
